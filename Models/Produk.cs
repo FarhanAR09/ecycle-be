@@ -8,9 +8,9 @@
         public int Stok { get; set; } = 0;
         public int Harga { get; set; }
         public string Kategori { get; set; } = string.Empty;
-        public string Bahan { get; set; } = string.Empty;
 
         //Foreign Keys
         public int PenggunaID { get; set; } = -1;
+        public int BahanID { get; set; } = -1;
     }
 }
