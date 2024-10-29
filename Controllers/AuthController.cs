@@ -1,35 +1,43 @@
 ﻿using ecycle_be.Models;
 using ecycle_be.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using System.Text.Json.Serialization;
+using System;
+using System.Threading.Tasks;
 
 namespace ecycle_be.Controllers
 {
     [ApiController]
     [Route("auth")]
-    public class AuthController(AuthService authService) : Controller
+    public class AuthController(AuthService authService) : ControllerBase
     {
-        private readonly AuthService authService = authService;
+        private readonly AuthService _authService = authService;
 
         [HttpPatch("login")]
         public async Task<IActionResult> Login([FromBody] Pengguna pengguna)
         {
             try
             {
-                Pengguna first = await authService.Login(pengguna);
+                Pengguna first = await _authService.Login(pengguna);
                 return Ok(first);
             }
             catch (Exception e)
             {
-                return BadRequest(e.Message);
+                return BadRequest(new { message = e.Message });
             }
         }
 
         [HttpPost("register")]
-        public IActionResult Register([FromBody] Pengguna pengguna)
+        public async Task<IActionResult> Register([FromBody] Pengguna pengguna)
         {
-            return Ok(pengguna);
+            try
+            {
+                await _authService.Register(pengguna);
+                return Ok();
+            }
+            catch (Exception e)
+            {
+                return BadRequest(new { message = e.Message });
+            }
         }
     }
 }
