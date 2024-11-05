@@ -11,6 +11,7 @@ namespace ecycle_be
 
             // Add services to the container.
             builder.Services.AddScoped<AuthService>();
+            builder.Services.AddScoped<ProductService>();
 
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
