@@ -1,4 +1,5 @@
 ﻿using ecycle_be.Models;
+using ecycle_be.Services;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
 using System;
@@ -121,9 +122,123 @@ namespace ecycle_be.Services
             }
         }
 
-        public async Task PostProduk()
+        public async Task<Produk> PostProduk(Produk produk)
         {
+            string? connectionString = _configuration.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new Exception("Failed to connect to the database.");
+            }
 
+            try
+            {
+                using var connection = new NpgsqlConnection(connectionString);
+                await connection.OpenAsync();
+
+                const string query = "INSERT INTO \"Produk\" (\"nama\", \"deskripsi\", \"harga\", \"stok\", \"penjualID\", \"kategoriID\", \"bahanID\")\r\n\tVALUES (@nama, @desc, @harga, @stok, @penjualID, 0, 0) RETURNING *;";
+
+                using var command = new NpgsqlCommand(query, connection);
+                command.Parameters.AddWithValue("@nama", produk.Nama ?? "");
+                command.Parameters.AddWithValue("@desc", produk.Deskripsi ?? "");
+                command.Parameters.AddWithValue("@harga", produk.Harga ?? 0);
+                command.Parameters.AddWithValue("@stok", produk.Stok ?? 0);
+                command.Parameters.AddWithValue("@penjualID", produk.PenjualID ?? 0);
+
+                using var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    produk.ProdukID = reader.GetInt32(reader.GetOrdinal("produkID"));
+                    produk.Nama = reader.GetString(reader.GetOrdinal("nama"));
+                    produk.Deskripsi = reader.GetString(reader.GetOrdinal("deskripsi"));
+                    produk.Harga = reader.GetDouble(reader.GetOrdinal("harga"));
+                    produk.Stok = reader.GetInt32(reader.GetOrdinal("stok"));
+                    produk.PenjualID = reader.GetInt32(reader.GetOrdinal("penjualID"));
+                    produk.KategoriID = reader.GetInt32(reader.GetOrdinal("kategoriID"));
+                    produk.BahanID = reader.GetInt32(reader.GetOrdinal("bahanID"));
+                }
+                
+                return produk;
+            }
+            catch (NpgsqlException ex)
+            {
+                throw new Exception("Failed to connect to the database.", ex);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public async Task<Produk> PatchProduk(Produk updatedProduk)
+        {
+            Console.WriteLine("Patching produk");
+
+            string? connectionString = _configuration.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new Exception("Failed to connect to the database.");
+            }
+
+            try
+            {
+                using var connection = new NpgsqlConnection(connectionString);
+                await connection.OpenAsync();
+
+                const string query = @"
+            UPDATE ""Produk"" 
+            SET 
+                ""nama"" = COALESCE(@nama, ""nama""),
+                ""deskripsi"" = COALESCE(@desc, ""deskripsi""),
+                ""harga"" = COALESCE(@harga, ""harga""),
+                ""stok"" = COALESCE(@stok, ""stok""),
+                ""kategoriID"" = COALESCE(@kategoriID, ""kategoriID""),
+                ""bahanID"" = COALESCE(@bahanID, ""bahanID"")
+            WHERE ""produkID"" = @id 
+            RETURNING *;";
+
+                Console.WriteLine("Adding values");
+
+                using var command = new NpgsqlCommand(query, connection);
+                command.Parameters.AddWithValue("@id", updatedProduk.ProdukID ?? -1);
+                command.Parameters.AddWithValue("@nama", updatedProduk.Nama ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@desc", updatedProduk.Deskripsi ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@harga", updatedProduk.Harga ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@stok", updatedProduk.Stok ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@kategoriID", updatedProduk.KategoriID ?? (object)DBNull.Value);
+                command.Parameters.AddWithValue("@bahanID", updatedProduk.BahanID ?? (object)DBNull.Value);
+
+                Console.WriteLine("Executing command");
+
+                using var reader = await command.ExecuteReaderAsync();
+
+                Console.WriteLine("Reading results");
+
+                if (await reader.ReadAsync())
+                {
+                    return new Produk
+                    {
+                        ProdukID = reader.GetInt32(reader.GetOrdinal("produkID")),
+                        Nama = reader.GetString(reader.GetOrdinal("nama")),
+                        Deskripsi = reader.GetString(reader.GetOrdinal("deskripsi")),
+                        Harga = reader.GetDouble(reader.GetOrdinal("harga")),
+                        Stok = reader.GetInt32(reader.GetOrdinal("stok")),
+                        PenjualID = reader.GetInt32(reader.GetOrdinal("penjualID")),
+                        KategoriID = reader.GetInt32(reader.GetOrdinal("kategoriID")),
+                        BahanID = reader.GetInt32(reader.GetOrdinal("bahanID"))
+                    };
+                }
+
+                throw new Exception($"Produk with ID {updatedProduk.ProdukID} not found.");
+            }
+            catch (NpgsqlException ex)
+            {
+                throw new Exception("Failed to connect to the database.", ex);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
     }
 }

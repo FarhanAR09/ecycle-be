@@ -46,5 +46,33 @@ namespace ecycle_be.Controllers
                 return BadRequest(new { message = e.Message });
             }
         }
+
+        [HttpPost("post")]
+        public async Task<IActionResult> PostProduct([FromBody] Produk produk)
+        {
+            try
+            {
+                Produk postedProduct = await _productService.PostProduk(produk);
+                return Ok(produk);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(new { message = e.Message });
+            }
+        }
+
+        [HttpPatch("update")]
+        public async Task<IActionResult> UpdateProduct(Produk produk)
+        {
+            try
+            {
+                Produk updatedProduk = await _productService.PatchProduk(produk);
+                return Ok(updatedProduk);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(new { message = e.Message });
+            }
+        }
     }
 }
