@@ -2,15 +2,17 @@
 {
     public class Produk
     {
-        public int ProdukID { get; set; } = -1;
-        public string Nama { get; set; } = string.Empty;
-        public string Deskripsi { get; set; } = string.Empty;
-        public int Stok { get; set; } = 0;
-        public int Harga { get; set; }
-        public string Kategori { get; set; } = string.Empty;
+        public int? ProdukID { get; set; }
+        public string? Nama { get; set; }
+        public string? Deskripsi { get; set; }
+        public int? Stok { get; set; }
+        public int? Terjual { get; set; }
+        public double? Harga { get; set; }
+        public double? OngkosKirim { get; set; }
+        public int? KategoriID { get; set; }
 
         //Foreign Keys
-        public int PenggunaID { get; set; } = -1;
-        public int BahanID { get; set; } = -1;
+        public int? PenjualID { get; set; }
+        public int? BahanID { get; set; }
     }
 }
