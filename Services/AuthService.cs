@@ -58,7 +58,7 @@ namespace ecycle_be.Services
             }
         }
 
-        public async Task Register(Pengguna pengguna)
+        public async Task<Pengguna> Register(Pengguna pengguna)
         {
             string? connectionString = _configuration.GetConnectionString("DefaultConnection");
             if (string.IsNullOrEmpty(connectionString))
@@ -72,14 +72,26 @@ namespace ecycle_be.Services
                 using var connection = new NpgsqlConnection(connectionString);
                 await connection.OpenAsync();
 
-                const string query = "insert into \"Pengguna\" (\"username\", \"password\", \"alamat\") values (@username, @password, @alamat);";
+                const string query = "insert into \"Pengguna\" (\"username\", \"password\", \"alamat\") values (@username, @password, @alamat) returning *;";
 
                 using var command = new NpgsqlCommand(query, connection);
                 command.Parameters.AddWithValue("@username", pengguna.Nama);
                 command.Parameters.AddWithValue("@password", pengguna.Password);
                 command.Parameters.AddWithValue("@alamat", pengguna.Alamat);
 
-                await command.ExecuteNonQueryAsync();
+                var reader = await command.ExecuteReaderAsync();
+
+                if (await reader.ReadAsync())
+                {
+                    pengguna.PenggunaID = reader.GetInt32(reader.GetOrdinal("penggunaID"));
+                    pengguna.Nama = reader.GetString(reader.GetOrdinal("username"));
+                    pengguna.Password = reader.GetString(reader.GetOrdinal("password"));
+                    pengguna.Alamat = reader.GetString(reader.GetOrdinal("alamat"));
+                    pengguna.Telepon = reader.GetString(reader.GetOrdinal("telepon"));
+                    pengguna.Token = reader.GetString(reader.GetOrdinal("token")) ?? "";
+                }
+
+                return pengguna;
             }
             catch (NpgsqlException ex)
             {
