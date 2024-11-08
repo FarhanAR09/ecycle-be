@@ -74,5 +74,19 @@ namespace ecycle_be.Controllers
                 return BadRequest(new { message = e.Message });
             }
         }
+
+        [HttpPatch("beli")]
+        public async Task<IActionResult> Beli(PembelianProduk beli)
+        {
+            try
+            {
+                await _productService.Beli(beli);
+                return Ok();
+            }
+            catch (Exception e)
+            {
+                return BadRequest(new { message = e.Message });
+            }
+        }
     }
 }
