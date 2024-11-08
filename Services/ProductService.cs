@@ -7,9 +7,10 @@ using System.Threading.Tasks;
 
 namespace ecycle_be.Services
 {
-    public class ProductService(IConfiguration configuration)
+    public class ProductService(IConfiguration configuration, AuthService authService)
     {
         private readonly IConfiguration _configuration = configuration;
+        private readonly AuthService _authService = authService;
 
         public async Task<List<Produk>> GetProductsThumbnails()
         {
@@ -170,10 +171,8 @@ namespace ecycle_be.Services
             }
         }
 
-        public async Task<Produk> PatchProduk(Produk updatedProduk)
+        public async Task PatchProduk(Produk updatedProduk)
         {
-            Console.WriteLine("Patching produk");
-
             string? connectionString = _configuration.GetConnectionString("DefaultConnection");
             if (string.IsNullOrEmpty(connectionString))
             {
@@ -194,10 +193,7 @@ namespace ecycle_be.Services
                 ""stok"" = COALESCE(@stok, ""stok""),
                 ""kategoriID"" = COALESCE(@kategoriID, ""kategoriID""),
                 ""bahanID"" = COALESCE(@bahanID, ""bahanID"")
-            WHERE ""produkID"" = @id 
-            RETURNING *;";
-
-                Console.WriteLine("Adding values");
+            WHERE ""produkID"" = @id;";
 
                 using var command = new NpgsqlCommand(query, connection);
                 command.Parameters.AddWithValue("@id", updatedProduk.ProdukID ?? -1);
@@ -208,32 +204,58 @@ namespace ecycle_be.Services
                 command.Parameters.AddWithValue("@kategoriID", updatedProduk.KategoriID ?? (object)DBNull.Value);
                 command.Parameters.AddWithValue("@bahanID", updatedProduk.BahanID ?? (object)DBNull.Value);
 
-                Console.WriteLine("Executing command");
-
-                using var reader = await command.ExecuteReaderAsync();
-
-                Console.WriteLine("Reading results");
-
-                if (await reader.ReadAsync())
-                {
-                    return new Produk
-                    {
-                        ProdukID = reader.GetInt32(reader.GetOrdinal("produkID")),
-                        Nama = reader.GetString(reader.GetOrdinal("nama")),
-                        Deskripsi = reader.GetString(reader.GetOrdinal("deskripsi")),
-                        Harga = reader.GetDouble(reader.GetOrdinal("harga")),
-                        Stok = reader.GetInt32(reader.GetOrdinal("stok")),
-                        PenjualID = reader.GetInt32(reader.GetOrdinal("penjualID")),
-                        KategoriID = reader.GetInt32(reader.GetOrdinal("kategoriID")),
-                        BahanID = reader.GetInt32(reader.GetOrdinal("bahanID"))
-                    };
-                }
+                await command.ExecuteNonQueryAsync();
 
                 throw new Exception($"Produk with ID {updatedProduk.ProdukID} not found.");
             }
             catch (NpgsqlException ex)
             {
                 throw new Exception("Failed to connect to the database.", ex);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public class PembelianProduk
+        {
+            public int? ProdukID { get; set; }
+            public int? Jumlah { get; set; }
+            public string? Username { get; set; }
+            public string? Password { get; set; }
+        }
+        public async Task Beli(PembelianProduk beli)
+        {
+            string? connectionString = _configuration.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new Exception("Failed to connect to the database.");
+            }
+
+            try
+            {
+                Pengguna pengguna = await _authService.Login(new Pengguna { Nama = beli.Username, Password = beli.Password });
+
+                using var connection = new NpgsqlConnection(connectionString);
+                await connection.OpenAsync();
+
+                const string query = @"
+                    UPDATE ""Produk"" 
+                    SET ""terjual"" = COALESCE(""terjual"", 0) + @jumlah
+                    WHERE ""produkID"" = @produkID;";
+
+                using var command = new NpgsqlCommand(query, connection);
+                command.Parameters.AddWithValue("@produkID", beli.ProdukID ?? throw new Exception("ProdukID not provided."));
+                command.Parameters.AddWithValue("@jumlah", (beli.Jumlah > 0 ? beli.Jumlah :
+                    throw new Exception("Jumlah must be over 0.")) ??
+                    throw new Exception("Jumlah not provided."));
+
+                await command.ExecuteNonQueryAsync();
+            }
+            catch (NpgsqlException ex)
+            {
+                throw new Exception("Failed to connect to the database. " + ex.Message, ex);
             }
             catch (Exception)
             {

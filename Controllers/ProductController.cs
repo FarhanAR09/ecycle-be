@@ -53,7 +53,7 @@ namespace ecycle_be.Controllers
             try
             {
                 Produk postedProduct = await _productService.PostProduk(produk);
-                return Ok(produk);
+                return Ok(postedProduct);
             }
             catch (Exception e)
             {
@@ -66,8 +66,22 @@ namespace ecycle_be.Controllers
         {
             try
             {
-                Produk updatedProduk = await _productService.PatchProduk(produk);
-                return Ok(updatedProduk);
+                await _productService.PatchProduk(produk);
+                return Ok();
+            }
+            catch (Exception e)
+            {
+                return BadRequest(new { message = e.Message });
+            }
+        }
+
+        [HttpPatch("beli")]
+        public async Task<IActionResult> Beli(PembelianProduk beli)
+        {
+            try
+            {
+                await _productService.Beli(beli);
+                return Ok();
             }
             catch (Exception e)
             {
