@@ -107,7 +107,7 @@ namespace ecycle_be.Services
             }
             catch (NpgsqlException ex)
             {
-                throw new Exception("Failed to connect to the database.", ex);
+                throw new Exception("Failed to connect to the database. " + ex.Message, ex);
             }
             catch (Exception)
             {

@@ -170,7 +170,7 @@ namespace ecycle_be.Services
             }
         }
 
-        public async Task<Produk> PatchProduk(Produk updatedProduk)
+        public async Task PatchProduk(Produk updatedProduk)
         {
             string? connectionString = _configuration.GetConnectionString("DefaultConnection");
             if (string.IsNullOrEmpty(connectionString))
@@ -192,8 +192,7 @@ namespace ecycle_be.Services
                 ""stok"" = COALESCE(@stok, ""stok""),
                 ""kategoriID"" = COALESCE(@kategoriID, ""kategoriID""),
                 ""bahanID"" = COALESCE(@bahanID, ""bahanID"")
-            WHERE ""produkID"" = @id 
-            RETURNING *;";
+            WHERE ""produkID"" = @id;";
 
                 using var command = new NpgsqlCommand(query, connection);
                 command.Parameters.AddWithValue("@id", updatedProduk.ProdukID ?? -1);
@@ -204,22 +203,7 @@ namespace ecycle_be.Services
                 command.Parameters.AddWithValue("@kategoriID", updatedProduk.KategoriID ?? (object)DBNull.Value);
                 command.Parameters.AddWithValue("@bahanID", updatedProduk.BahanID ?? (object)DBNull.Value);
 
-                using var reader = await command.ExecuteReaderAsync();
-
-                if (await reader.ReadAsync())
-                {
-                    return new Produk
-                    {
-                        ProdukID = reader.GetInt32(reader.GetOrdinal("produkID")),
-                        Nama = reader.GetString(reader.GetOrdinal("nama")),
-                        Deskripsi = reader.GetString(reader.GetOrdinal("deskripsi")),
-                        Harga = reader.GetDouble(reader.GetOrdinal("harga")),
-                        Stok = reader.GetInt32(reader.GetOrdinal("stok")),
-                        PenjualID = reader.GetInt32(reader.GetOrdinal("penjualID")),
-                        KategoriID = reader.GetInt32(reader.GetOrdinal("kategoriID")),
-                        BahanID = reader.GetInt32(reader.GetOrdinal("bahanID"))
-                    };
-                }
+                await command.ExecuteNonQueryAsync();
 
                 throw new Exception($"Produk with ID {updatedProduk.ProdukID} not found.");
             }

@@ -66,8 +66,8 @@ namespace ecycle_be.Controllers
         {
             try
             {
-                Produk updatedProduk = await _productService.PatchProduk(produk);
-                return Ok(updatedProduk);
+                await _productService.PatchProduk(produk);
+                return Ok();
             }
             catch (Exception e)
             {

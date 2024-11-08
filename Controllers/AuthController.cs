@@ -32,8 +32,8 @@ namespace ecycle_be.Controllers
         {
             try
             {
-                await _authService.Register(pengguna);
-                return Ok();
+                Pengguna registered = await _authService.Register(pengguna);
+                return Ok(registered);
             }
             catch (Exception e)
             {
@@ -47,7 +47,7 @@ namespace ecycle_be.Controllers
             try
             {
                 await _authService.UpdatePenggunaAsync(pengguna);
-                return Ok(pengguna);
+                return Ok();
             }
             catch (Exception e)
             {
