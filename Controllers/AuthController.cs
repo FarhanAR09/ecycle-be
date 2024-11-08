@@ -3,6 +3,7 @@ using ecycle_be.Services;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
+using static ecycle_be.Services.AuthService;
 
 namespace ecycle_be.Controllers
 {
@@ -33,6 +34,20 @@ namespace ecycle_be.Controllers
             {
                 await _authService.Register(pengguna);
                 return Ok();
+            }
+            catch (Exception e)
+            {
+                return BadRequest(new { message = e.Message });
+            }
+        }
+
+        [HttpPatch("update")]
+        public async Task<IActionResult> Update(UpdatingPengguna pengguna)
+        {
+            try
+            {
+                await _authService.UpdatePenggunaAsync(pengguna);
+                return Ok(pengguna);
             }
             catch (Exception e)
             {

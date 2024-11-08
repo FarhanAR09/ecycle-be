@@ -172,8 +172,6 @@ namespace ecycle_be.Services
 
         public async Task<Produk> PatchProduk(Produk updatedProduk)
         {
-            Console.WriteLine("Patching produk");
-
             string? connectionString = _configuration.GetConnectionString("DefaultConnection");
             if (string.IsNullOrEmpty(connectionString))
             {
@@ -197,8 +195,6 @@ namespace ecycle_be.Services
             WHERE ""produkID"" = @id 
             RETURNING *;";
 
-                Console.WriteLine("Adding values");
-
                 using var command = new NpgsqlCommand(query, connection);
                 command.Parameters.AddWithValue("@id", updatedProduk.ProdukID ?? -1);
                 command.Parameters.AddWithValue("@nama", updatedProduk.Nama ?? (object)DBNull.Value);
@@ -208,11 +204,7 @@ namespace ecycle_be.Services
                 command.Parameters.AddWithValue("@kategoriID", updatedProduk.KategoriID ?? (object)DBNull.Value);
                 command.Parameters.AddWithValue("@bahanID", updatedProduk.BahanID ?? (object)DBNull.Value);
 
-                Console.WriteLine("Executing command");
-
                 using var reader = await command.ExecuteReaderAsync();
-
-                Console.WriteLine("Reading results");
 
                 if (await reader.ReadAsync())
                 {

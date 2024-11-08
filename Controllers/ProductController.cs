@@ -53,7 +53,7 @@ namespace ecycle_be.Controllers
             try
             {
                 Produk postedProduct = await _productService.PostProduk(produk);
-                return Ok(produk);
+                return Ok(postedProduct);
             }
             catch (Exception e)
             {

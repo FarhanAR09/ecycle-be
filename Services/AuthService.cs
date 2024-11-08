@@ -26,6 +26,12 @@ namespace ecycle_be.Services
                 const string query = "SELECT * FROM \"Pengguna\" WHERE \"username\" = @username AND \"password\" = @password LIMIT 1;";
 
                 using var command = new NpgsqlCommand(query, connection);
+
+                if (pengguna.Nama == null || pengguna.Password == null)
+                {
+                    throw new Exception("Username or password is null");
+                }
+
                 command.Parameters.AddWithValue("@username", pengguna.Nama);
                 command.Parameters.AddWithValue("@password", pengguna.Password);
 
@@ -75,9 +81,15 @@ namespace ecycle_be.Services
                 const string query = "insert into \"Pengguna\" (\"username\", \"password\", \"alamat\") values (@username, @password, @alamat) returning *;";
 
                 using var command = new NpgsqlCommand(query, connection);
+
+                if (pengguna.Nama == null || pengguna.Password == null)
+                {
+                    throw new Exception("Username or password is null");
+                }
+
                 command.Parameters.AddWithValue("@username", pengguna.Nama);
                 command.Parameters.AddWithValue("@password", pengguna.Password);
-                command.Parameters.AddWithValue("@alamat", pengguna.Alamat);
+                command.Parameters.AddWithValue("@alamat", (object?)pengguna.Alamat ?? DBNull.Value);
 
                 var reader = await command.ExecuteReaderAsync();
 
@@ -100,6 +112,52 @@ namespace ecycle_be.Services
             catch (Exception)
             {
                 throw;
+            }
+        }
+
+        public class UpdatingPengguna : Pengguna
+        {
+            public string? NewPassword { get; set; }
+        }
+        public async Task UpdatePenggunaAsync(UpdatingPengguna pengguna)
+        {
+            // Retrieve the connection string from app settings
+            string? connectionString = _configuration.GetConnectionString("DefaultConnection");
+
+            if (string.IsNullOrEmpty(connectionString))
+                throw new Exception("Failed to connect to the database.");
+
+            try
+            {
+                Pengguna loggedInPengguna = await Login(pengguna);
+
+                using var connection = new NpgsqlConnection(connectionString);
+                await connection.OpenAsync();
+
+                const string query = @"
+                    UPDATE ""Pengguna"" 
+                    SET 
+                        ""username"" = COALESCE(@nama, ""username""),
+                        ""password"" = COALESCE(@password, ""password""),
+                        ""alamat"" = COALESCE(@alamat, ""alamat""),
+                        ""telepon"" = COALESCE(@telepon, ""telepon""),
+                        ""token"" = COALESCE(@token, ""token"")
+                    WHERE ""penggunaID"" = @penggunaID;
+                ";
+
+                var command = new NpgsqlCommand(query, connection);
+                command.Parameters.AddWithValue("@penggunaID", loggedInPengguna.PenggunaID ?? throw new Exception("penggunaID is null"));
+                command.Parameters.AddWithValue("@nama", (object?)pengguna.Nama ?? DBNull.Value);
+                command.Parameters.AddWithValue("@password", (object?)pengguna.NewPassword ?? DBNull.Value);
+                command.Parameters.AddWithValue("@alamat", (object?)pengguna.Alamat ?? DBNull.Value);
+                command.Parameters.AddWithValue("@telepon", (object?)pengguna.Telepon ?? DBNull.Value);
+                command.Parameters.AddWithValue("@token", (object?)pengguna.Token ?? DBNull.Value);
+
+                await command.ExecuteNonQueryAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"An error occurred while updating Pengguna data. {ex.Message}", ex);
             }
         }
     }
