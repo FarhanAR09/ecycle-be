@@ -47,6 +47,20 @@ namespace ecycle_be.Controllers
             }
         }
 
+        [HttpGet("user/{id}")]
+        public async Task<IActionResult> GetByUser(int id)
+        {
+            try
+            {
+                List<Produk> produk = await _productService.GetByUser(id);
+                return Ok(produk);
+            }
+            catch (Exception e)
+            {
+                return BadRequest(new { message = e.Message });
+            }
+        }
+
         [HttpPost("post")]
         public async Task<IActionResult> PostProduct([FromBody] Produk produk)
         {
