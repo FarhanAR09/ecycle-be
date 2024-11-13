@@ -123,6 +123,49 @@ namespace ecycle_be.Services
             }
         }
 
+        public async Task<List<Produk>> GetByUser(int penjualID)
+        {
+            string? connectionString = _configuration.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new Exception("Failed to connect to the database.");
+            }
+
+            try
+            {
+                using var connection = new NpgsqlConnection(connectionString);
+                await connection.OpenAsync();
+
+                const string query = "SELECT \"produkID\", \"nama\", \"harga\" FROM \"Produk\" WHERE \"penjualID\" = @penjualID;";
+
+                using var command = new NpgsqlCommand(query, connection);
+                command.Parameters.AddWithValue("@penjualID", penjualID);
+
+                using var reader = await command.ExecuteReaderAsync();
+
+                List<Produk> products = [];
+                while (await reader.ReadAsync())
+                {
+                    products.Add(new Produk()
+                    {
+                        ProdukID = reader.GetInt32(reader.GetOrdinal("produkID")),
+                        Nama = reader.GetString(reader.GetOrdinal("nama")),
+                        Harga = reader.GetDouble(reader.GetOrdinal("harga")),
+                    });
+                }
+
+                return products;
+            }
+            catch (NpgsqlException ex)
+            {
+                throw new Exception("Failed to connect to the database. " + ex.Message, ex);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
         public async Task<Produk> PostProduk(Produk produk)
         {
             string? connectionString = _configuration.GetConnectionString("DefaultConnection");
