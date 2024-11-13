@@ -117,6 +117,7 @@ namespace ecycle_be.Services
 
         public class UpdatingPengguna : Pengguna
         {
+            public string? NewUsername { get; set; }
             public string? NewPassword { get; set; }
         }
         public async Task UpdatePenggunaAsync(UpdatingPengguna pengguna)
@@ -147,7 +148,7 @@ namespace ecycle_be.Services
 
                 var command = new NpgsqlCommand(query, connection);
                 command.Parameters.AddWithValue("@penggunaID", loggedInPengguna.PenggunaID ?? throw new Exception("penggunaID is null"));
-                command.Parameters.AddWithValue("@nama", (object?)pengguna.Nama ?? DBNull.Value);
+                command.Parameters.AddWithValue("@nama", (object?)pengguna.NewUsername ?? DBNull.Value);
                 command.Parameters.AddWithValue("@password", (object?)pengguna.NewPassword ?? DBNull.Value);
                 command.Parameters.AddWithValue("@alamat", (object?)pengguna.Alamat ?? DBNull.Value);
                 command.Parameters.AddWithValue("@telepon", (object?)pengguna.Telepon ?? DBNull.Value);
