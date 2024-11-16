@@ -236,7 +236,8 @@ namespace ecycle_be.Services
                 ""stok"" = COALESCE(@stok, ""stok""),
                 ""kategoriID"" = COALESCE(@kategoriID, ""kategoriID""),
                 ""bahanID"" = COALESCE(@bahanID, ""bahanID"")
-            WHERE ""produkID"" = @id;";
+            WHERE ""produkID"" = @id
+            RETURNING *;";
 
                 using var command = new NpgsqlCommand(query, connection);
                 command.Parameters.AddWithValue("@id", updatedProduk.ProdukID ?? -1);
@@ -247,9 +248,12 @@ namespace ecycle_be.Services
                 command.Parameters.AddWithValue("@kategoriID", updatedProduk.KategoriID ?? (object)DBNull.Value);
                 command.Parameters.AddWithValue("@bahanID", updatedProduk.BahanID ?? (object)DBNull.Value);
 
-                await command.ExecuteNonQueryAsync();
+                var reader = await command.ExecuteReaderAsync();
 
-                throw new Exception($"Produk with ID {updatedProduk.ProdukID} not found.");
+                if (!await reader.ReadAsync())
+                {
+                    throw new Exception($"Produk with ID {updatedProduk.ProdukID} not found.");
+                }
             }
             catch (NpgsqlException ex)
             {
@@ -295,6 +299,54 @@ namespace ecycle_be.Services
                     throw new Exception("Jumlah not provided."));
 
                 await command.ExecuteNonQueryAsync();
+            }
+            catch (NpgsqlException ex)
+            {
+                throw new Exception("Failed to connect to the database. " + ex.Message, ex);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public async Task Delete(PembelianProduk produk)
+        {
+            string? connectionString = _configuration.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new Exception("Failed to connect to the database.");
+            }
+
+            try
+            {
+                Pengguna pengguna = await _authService.Login(new Pengguna { Nama = produk.Username, Password = produk.Password });
+
+                using var connection = new NpgsqlConnection(connectionString);
+                await connection.OpenAsync();
+
+                // User authorization
+                string query1 = "SELECT * FROM \"Produk\" WHERE \"penjualID\" = @penjualID AND \"produkID\" = @produkID;";
+                using (var command = new NpgsqlCommand(query1, connection))
+                {
+                    command.Parameters.AddWithValue("@penjualID", pengguna.PenggunaID ?? throw new Exception("PenggunaID not authorized."));
+                    command.Parameters.AddWithValue("@produkID", produk.ProdukID ?? throw new Exception("ProdukID not provided."));
+
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        if (!await reader.ReadAsync())
+                        {
+                            throw new Exception($"Produk with ID {produk.ProdukID} not found in this account.");
+                        }
+                    }
+                }
+
+                string query2 = "DELETE FROM \"Produk\" WHERE \"produkID\" = @produkID;";
+                using (var command2 = new NpgsqlCommand(query2, connection))
+                {
+                    command2.Parameters.AddWithValue("@produkID", produk.ProdukID ?? throw new Exception("ProdukID not provided."));
+                    await command2.ExecuteNonQueryAsync();
+                }
             }
             catch (NpgsqlException ex)
             {

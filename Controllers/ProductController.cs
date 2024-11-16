@@ -102,5 +102,19 @@ namespace ecycle_be.Controllers
                 return BadRequest(new { message = e.Message });
             }
         }
+
+        [HttpDelete("delete")]
+        public async Task<IActionResult> Delete(PembelianProduk produk)
+        {
+            try
+            {
+                await _productService.Delete(produk);
+                return Ok();
+            }
+            catch (Exception e)
+            {
+                return BadRequest(new { message = e.Message });
+            }
+        }
     }
 }
